@@ -1,3 +1,5 @@
+import tkinter as tk
+from tkinter import simpledialog, messagebox
 import random
 from random import shuffle
 
@@ -174,14 +176,96 @@ class Game:
         for player in self.players:
             score = sum(card.value for card in player.discard)
             print(f"{player.name}: {score}")
+# GUI Class
+class DominionGUI:
+    def __init__(self, game):
+        self.game = game
+        self.root = tk.Tk()
+        self.root.title("Dominion Game")
+        self.current_player_index = 0
 
-# Setting up the game
+        # Setup the game board
+        self.setup_board()
+        self.update_board()
+
+    def setup_board(self):
+        # Frame for Player Hands
+        self.player_frame = tk.Frame(self.root)
+        self.player_frame.pack()
+
+        self.player_hand_labels = []
+        for i in range(len(self.game.players)):
+            label = tk.Label(self.player_frame, text="")
+            label.pack()
+            self.player_hand_labels.append(label)
+
+        # Frame for Supply
+        self.supply_frame = tk.Frame(self.root)
+        self.supply_frame.pack()
+
+        self.supply_label = tk.Label(self.supply_frame, text="")
+        self.supply_label.pack()
+
+        # Control Buttons
+        self.control_frame = tk.Frame(self.root)
+        self.control_frame.pack()
+
+        self.play_card_button = tk.Button(self.control_frame, text="Play Card", command=self.play_card)
+        self.play_card_button.pack(side=tk.LEFT)
+
+        self.buy_card_button = tk.Button(self.control_frame, text="Buy Card", command=self.buy_card)
+        self.buy_card_button.pack(side=tk.LEFT)
+
+        self.end_turn_button = tk.Button(self.control_frame, text="End Turn", command=self.end_turn)
+        self.end_turn_button.pack(side=tk.LEFT)
+
+    def play_card(self):
+        player = self.game.players[self.current_player_index]
+        card_name = simpledialog.askstring("Play Card", "Enter the name of the card you want to play:", parent=self.root)
+        if card_name:
+            for card in player.hand:
+                if card.__class__.__name__.lower() == card_name.lower():
+                    player.play(card)
+                    self.update_board()
+                    break
+            else:
+                messagebox.showerror("Error", "Invalid card name.")
+
+    def buy_card(self):
+        player = self.game.players[self.current_player_index]
+        card_name = simpledialog.askstring("Buy Card", "Enter the name of the card you want to buy:", parent=self.root)
+        if card_name:
+            for card in self.game.supply:
+                if card.__class__.__name__.lower() == card_name.lower() and self.game.supply[card] > 0:
+                    player.buy(card, self.game.supply)
+                    self.update_board()
+                    break
+            else:
+                messagebox.showerror("Error", "Invalid card name or card not available.")
+
+    def end_turn(self):
+        self.current_player_index = (self.current_player_index + 1) % len(self.game.players)
+        self.game.players[self.current_player_index].cleanup()
+        self.update_board()
+
+    def update_board(self):
+        for i, player in enumerate(self.game.players):
+            self.player_hand_labels[i].config(text=f"{player.name}'s Hand: {player.show_hand()}")
+        self.supply_label.config(text=f"Supply: {self.game.show_supply()}")
+
+    def run(self):
+        self.root.mainloop()
+
+# Initialize the game
 random.seed(0)
 game = Game()
-player1_name = input("Enter name for Player 1: ")
-player2_name = input("Enter name for Player 2: ")
-game.add_player(Player(player1_name))
-game.add_player(Player(player2_name))
+player1 = Player("Player 1")
+player2 = Player("Player 2")
+game.add_player(player1)
+game.add_player(player2)
 game.initialize()
-game.play()
+
+# Run the GUI
+app = DominionGUI(game)
+app.run()
 
